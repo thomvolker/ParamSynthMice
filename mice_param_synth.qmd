@@ -69,6 +69,20 @@ synth_mice <- future_map(datlist, ~ mice(.x,
                                     complete("all"),
                          .options = furrr_options(seed = TRUE))
 
+synth_mice2 <- future_map(datlist, function(x) {
+  new_x <- matrix(NA, nrow(x), ncol(x), dimnames = list(NULL, names(x)))
+  pred  <- make.predictorMatrix(x)
+  imp   <- mice(rbind(x, new_x),
+                m = 5, 
+                method = "norm",
+                maxit = 1,
+                predictorMatrix = +lower.tri(pred),
+                ignore = rep(c(FALSE, TRUE), each = nrow(x)),
+                print = F)
+  complete(imp, "all") |>
+    map(~ .x[(nrow(x) + 1):(2*nrow(x)),])
+}, .options = furrr_options(seed = TRUE))
+
 synth_synthpop <- future_map(datlist, ~ syn(.x,
                                             m = 5, 
                                             method = "norm",
@@ -105,6 +119,18 @@ true_inf <- map_dfr(datlist, function(x) {
   })
 
 mice_inf <- map_dfr(synth_mice, function(x) {
+  fit <- map(x, ~ lm(X1 ~ X2 + X3 + X4 + X5 + X6, .x)) |>
+    pool(rule = "reiter2003") %$%
+    pooled
+  
+  data.frame(Var = fit[,1],
+             Est = fit[,3],
+             SE  = sqrt(fit[,6]),
+             Low = fit[,3] - qt(0.975, fit[,8]) * sqrt(fit[,6]),
+             Upp = fit[,3] + qt(0.975, fit[,8]) * sqrt(fit[,6]))
+})
+
+mice2_inf <- map_dfr(synth_mice2, function(x) {
   fit <- map(x, ~ lm(X1 ~ X2 + X3 + X4 + X5 + X6, .x)) |>
     pool(rule = "reiter2003") %$%
     pooled
@@ -156,6 +182,14 @@ coverage(true_inf, c(0,1,1,1,1,1)/6) |> print.df()
 #| label: mice-inf
 coverage(mice_inf, c(0,1,1,1,1,1)/6) |> print.df()
 ```
+### Second mice approach to synthetic data
+
+Note that with this approach, we specify the ignore parameter to make sure the imputation models are not affected by the synthetic data. 
+
+```{r}
+#| label: mice2-inf
+coverage(mice2_inf, c(0,1,1,1,1,1)/6) |> print.df()
+```
 
 ### Synthpop synthetic
 
@@ -164,7 +198,7 @@ coverage(mice_inf, c(0,1,1,1,1,1)/6) |> print.df()
 coverage(synthpop_inf, c(0,1,1,1,1,1)/6) |> print.df()
 ```
 
-So, we see that whereas inferences on the true data and the synthetic data generated with `synthpop` are unbiased, inferences from the data generated with `mice` are biased. Apart from that, they are also overcovering (with the same pooling rules as used for `synthpop`).
+So, we see that whereas inferences on the true data, the synthetic data generated with `synthpop` and the synthetic data generated with `mice` by using the `ignore` parameter are unbiased, inferences from the data generated with `mice` are biased. Apart from that, they are also overcovering (with the same pooling rules as used for `synthpop`). This implies that the variance using the regular `mice` method without specifying the `ignore` parameter is too small, resulting in too many values close to the center of the sampling distribution.
 
 ## Visualize results
 
@@ -173,6 +207,7 @@ So, we see that whereas inferences on the true data and the synthetic data gener
 #| message: false
 bind_rows(Observed = true_inf,
           Mice = mice_inf,
+          Mice_Ign = mice2_inf,
           Synthpop = synthpop_inf,
           .id = "Method") |>
   ggplot(aes(x = Est, col = Method)) +
