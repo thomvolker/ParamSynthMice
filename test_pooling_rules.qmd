@@ -1,0 +1,257 @@
+---
+title: "Pooling rules for imputing missing data, synthetic data, and both"
+author: "Thom Benjamin Volker"
+format: html
+---
+
+Parametric synthesis with mice yields biased and overcovering results. 
+
+```{r}
+#| message: false
+library(mice)
+library(synthpop)
+library(furrr)
+library(purrr)
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+```
+
+
+## Parameter specifications
+
+```{r}
+#| label: param-spec
+N <- 500
+P <- 6
+
+S <- matrix(0.5, P, P) # covariance matrix
+diag(S) <- 1
+```
+
+In due time, we will regress $X_1$ on $X_2$, $X_3$, $X_4$, $X_5$ and $X_6$. Given this covariance matrix, this yields regression coefficients
+
+$$
+(S_{-1,-1}' S_{-1,-1})^{-1} S'_{-1,-1} S_{1,-1} = \beta
+$$
+where $S_{-1, -1}$ is the covariance matrix excluding the first row and first column, $S_{-1,-1}'$ is its transpose, and $S_{-1, 1}$ is the column vector of the covariances of $X_1$ with $X_2$ to $X_6$. This yields $\beta = \begin{bmatrix} 0.167 & 0.167 & 0.167 & 0.167 & 0.167 \end{bmatrix}$, with population level effect size 
+$$
+R^2 = \boldsymbol{1}'_5 (\beta \beta' \odot S_{-1,-1}) \boldsymbol{1}_5
+$$
+with $\boldsymbol{1}_5$ a length-five column vector of ones.
+
+## Generate data
+
+```{r}
+#| label: gen-data
+nsim <- 500
+set.seed(123)
+plan(multisession)
+
+datlist <- map(1:nsim, 
+               ~rnorm(N*P) |> 
+                 matrix(N,P) %*% chol(S) |> 
+                 data.frame())
+```
+
+## Imputation
+
+```{r}
+#| label: do-imputations
+#| cache: true
+#| cache-lazy: false
+miss <- future_map(datlist, 
+                   ~ ampute(.x, prop = 0.5, mech = "MCAR")$amp |>
+                     mice(method = "norm", printFlag = F) |>
+                     complete("all"),
+                   .options = furrr_options(seed = TRUE))
+
+synth1 <- future_map(datlist, 
+                     ~mice(.x, 
+                           method = "norm", 
+                           maxit = 1,
+                           where = make.where(.x, "all"),
+                           printFlag = F) |>
+                       complete("all"),
+                     .options = furrr_options(seed = TRUE))
+
+synth2 <- future_map(datlist,
+                     ~mice(rbind(.x, 
+                                 matrix(NA, nrow(.x), ncol(.x),
+                                        dimnames = list(NULL, names(.x)))),
+                           method = "norm",
+                           maxit = 1,
+                           predictorMatrix = +lower.tri(diag(ncol(.x))),
+                           ignore = rep(c(FALSE, TRUE), each = nrow(.x)),
+                           printFlag = FALSE) |>
+                       complete("all") |>
+                       map(function(i) tail(i, nrow(.x))),
+                     .options = furrr_options(seed = TRUE))
+
+miss_synth <- future_map(datlist, 
+                         ~ampute(.x, prop = 0.5, mech = "MCAR")$amp |>
+                           mice(method = "norm",
+                                where = make.where(.x, "all"),
+                                printFlag = F) |>
+                           complete("all"),
+                         .options = furrr_options(seed = TRUE))
+```
+
+## Inferences
+
+```{r}
+#| label: inferences
+
+coverage <- function(est, true) {
+  est |>
+    mutate(True_Est = rep(true, nrow(est)/length(true))) |>
+    group_by(Var) |>
+    summarize(True_Est = mean(True_Est),
+              Imp_Est = mean(Est),
+              SE = mean(SE),
+              Cov = mean(Low < True_Est & True_Est < Upp))
+}
+
+inferences <- function(fitlist, rule) {
+  fit <- pool(fitlist, rule = rule) %$% pooled
+  data.frame(Var = fit[,1],
+             Est = fit[,3],
+             SE  = sqrt(fit[,6]),
+             Low = fit[,3] - qt(0.975, fit[,8]) * sqrt(fit[,6]),
+             Upp = fit[,3] + qt(0.975, fit[,8]) * sqrt(fit[,6]))
+}
+
+true_inf <- map_dfr(datlist, function(x) {
+  fit <- lm(X1 ~ X2 + X3 + X4 + X5 + X6, x) |> 
+    summary()
+  coefs <- fit$coefficients
+  df    <- fit$df[2]
+  
+  
+  data.frame(Var = rownames(coefs),
+             Est = coefs[,1],
+             SE  = coefs[,2],
+             Low = coefs[,1] - qt(0.975, df) * coefs[,2],
+             Upp = coefs[,1] + qt(0.975, df) * coefs[,2])
+  })
+
+miss_fit <- map(miss, function(x) map(x, ~lm(X1 ~ X2 + X3 + X4 + X5 + X6, .x)))
+miss_inf_rubin  <- map_dfr(miss_fit, ~inferences(.x, "rubin1987"))
+miss_inf_reiter <- map_dfr(miss_fit, ~inferences(.x, "reiter2003"))
+
+synth1_fit <- map(synth1, function(x) map(x, ~lm(X1 ~ X2 + X3 + X4 + X5 + X6, .x)))
+synth1_inf_rubin  <- map_dfr(synth1_fit, ~inferences(.x, "rubin1987"))
+synth1_inf_reiter <- map_dfr(synth1_fit, ~inferences(.x, "reiter2003"))
+
+synth2_fit <- map(synth2, function(x) map(x, ~lm(X1 ~ X2 + X3 + X4 + X5 + X6, .x)))
+synth2_inf_rubin  <- map_dfr(synth2_fit, ~inferences(.x, "rubin1987"))
+synth2_inf_reiter <- map_dfr(synth2_fit, ~inferences(.x, "reiter2003"))
+
+miss_synth_fit <- map(miss_synth, function(x) {
+  map(x, ~lm(X1 ~ X2 + X3 + X4 + X5 + X6, .x))
+  })
+miss_synth_inf_rubin  <- map_dfr(miss_synth_fit, ~inferences(.x, "rubin1987"))
+miss_synth_inf_reiter <- map_dfr(miss_synth_fit, ~inferences(.x, "reiter2003"))
+```
+
+## Coverages
+
+```{r}
+#| label: df-print
+#| include: false
+
+print.df <- function(df) {
+  df |>
+    knitr::kable(digits = 3) |>
+    kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
+}
+```
+
+## Observed data
+
+```{r}
+#| label: true-inf
+coverage(true_inf, c(0,1,1,1,1,1)/6) |> print.df()
+```
+
+### Missing data
+
+#### Rubin
+
+```{r}
+#| label: miss-inf-rubin
+coverage(miss_inf_rubin, c(0,1,1,1,1,1)/6) |> print.df()
+```
+
+#### Reiter
+
+```{r}
+#| label: miss-inf-reiter
+coverage(miss_inf_reiter, c(0,1,1,1,1,1)/6) |> print.df()
+```
+
+### Synthetic data with mice (1) 
+
+#### Rubin
+
+```{r}
+#| label: synth-inf-rubin
+coverage(synth1_inf_rubin, c(0,1,1,1,1,1)/6) |> print.df()
+```
+
+#### Reiter
+
+```{r}
+#| label: synth-inf-reiter
+coverage(synth1_inf_reiter, c(0,1,1,1,1,1)/6) |> print.df()
+```
+
+### Synthetic data with mice (2) 
+
+#### Rubin
+
+```{r}
+#| label: synth2-inf-rubin
+coverage(synth2_inf_rubin, c(0,1,1,1,1,1)/6) |> print.df()
+```
+
+#### Reiter
+
+```{r}
+#| label: synth2-inf-reiter
+coverage(synth2_inf_reiter, c(0,1,1,1,1,1)/6) |> print.df()
+```
+
+### Missing and synthetic data with mice
+
+#### Rubin
+
+```{r}
+#| label: miss-synth-inf-rubin
+coverage(miss_synth_inf_rubin, c(0,1,1,1,1,1)/6) |> print.df()
+```
+
+#### Reiter
+
+```{r}
+#| label: mice-synth-inf-reiter
+coverage(miss_synth_inf_reiter, c(0,1,1,1,1,1)/6) |> print.df()
+```
+
+## Plot results
+
+```{r}
+#| label: plot-results
+#| message: false
+bind_rows(Observed = true_inf,
+          Miss = miss_inf_reiter,
+          Synth = synth1_inf_reiter,
+          Synth_Ign = synth2_inf_reiter,
+          Miss_Synth = miss_synth_inf_reiter,
+          .id = "Method") |>
+  ggplot(aes(x = Est, col = Method)) +
+  geom_density() +
+  ggdark::dark_theme_minimal() +
+  facet_wrap(~Var)
+```
+
