@@ -1,5 +1,5 @@
 ---
-title: "Mice synthetic data approach doesn't work, but maybe a different scheme can be considered"
+title: "Current `where`-matrix approach does not preserve relationships, maybe a different procedure can work"
 format: html
 ---
 
