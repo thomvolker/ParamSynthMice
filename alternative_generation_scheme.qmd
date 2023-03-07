@@ -1,0 +1,79 @@
+---
+title: "Mice synthetic data approach doesn't work, but maybe a different scheme can be considered"
+format: html
+---
+
+More or less the current approach in mice. I simplified somewhat, by not taking randomness in the regression coefficients into account here, but that should only have a minor influence on the results (and if it affects the results at all, it should be for the better, because the imputations are closer to their actual values).
+
+
+```{r}
+#| message: false
+library(purrr)
+library(dplyr)
+library(tidyr)
+
+set.seed(123)
+
+N <- 1000000
+rho <- 0.6
+
+syn_cors <- map_dbl(1:100, function(x) {
+  X1 <- rnorm(N)
+  X2 <- rho * X1 + rnorm(N, 0, sqrt(1-rho^2))
+  
+  fit1 <- lm(X1 ~ X2)
+  fit2 <- lm(X2 ~ X1)
+  
+  X1syn <- predict(fit1) + rnorm(N, 0, sd(fit1$residuals))
+  X2syn <- predict(fit2) + rnorm(N, 0, sd(fit2$residuals))
+  
+  cor(X1syn, X2syn)
+})
+
+mean(syn_cors)
+```
+
+As can be seen, the correlation is not preserved.
+
+
+An alternative generation scheme can be considered as below, which is, I think, closer to what should happen. 
+
+```{r}
+N <- 10000
+P <- 3
+S <- matrix(rho, P, P)
+diag(S) <- 1
+
+
+syns <- map(1:100, function(x) {
+
+  X <- rnorm(N*P) |> matrix(N, P) %*% chol(S)
+  syn <- X
+  
+  for (i in 1:ncol(X)) {
+    fit <- lm(X[,i] ~ X[,-i])
+    b <- fit$coefficients
+    nb <- length(b)
+    b_se <- vcov(fit)
+    pred <- cbind(1, syn[,-i]) %*% (b + c(rnorm(b) |> matrix(1, nb) %*% chol(b_se)))
+    syn[,i] <- pred + rnorm(N, 0, sd(fit$residuals))
+  }
+  syn
+})
+
+syns |>
+  map_dfr(~data.frame(.x) |>
+            summarize(across(.fns = list(mean = mean, var = var))) |>
+            pivot_longer(cols = everything(),
+                         names_sep = "_",
+                         names_to = c("var", "stat"))) |>
+  group_by(var, stat) |>
+  summarize(value = mean(value))
+
+S
+
+syns |>
+  map(var) |>
+  {\(x) reduce(x, `+`) / 100}()
+
+```
