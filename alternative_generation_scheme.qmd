@@ -33,7 +33,20 @@ syn_cors <- map_dbl(1:100, function(x) {
 mean(syn_cors)
 ```
 
-As can be seen, the correlation is not preserved.
+As can be seen, the correlation is not preserved. In fact, the correlation is dramatically reduced. To see how, consider the following sketch how this works for two variables, $X_1$ and $X_2$ and synthetic variables $\tilde{X_1}$ and $\tilde{X_2}$. The covariance of the generated synthetic variables equals
+$$
+\begin{align}
+& \mathbb{E}[(\tilde{X_1} - \mu_{\tilde{X_1}})(\tilde{X_2} - \mu_\tilde{X_2})] \\
+= & \mathbb{E}[\tilde{X_1}\tilde{X_2}] \\
+= & \mathbb{E}[(\rho X_2 + \varepsilon_2)(\rho X_1 + \varepsilon_1)] \\
+= & \mathbb{E}[\rho^2 X_1 X_2 + \rho X_1 \varepsilon_2 + \rho X_2 \varepsilon_1 + \varepsilon_1\varepsilon_2] \\
+= & \mathbb{E}[\rho^2 X_1 X_2] + \mathbb{E}[\rho X_1 \varepsilon_2] + 
+\mathbb{E}[\rho X_2 \varepsilon_1] + \mathbb{E}[\varepsilon_1\varepsilon_2] \\
+= & \rho^2 (\mathbb{E}[X_1] \mathbb{E}[X_2] + \rho \sigma_{X_1}\sigma_{X_2}) \\
+= & \rho^3,
+\end{align}
+$$
+where we make use of the fact that the expectation of the product of two normally distributed random variables equals the product of the expectations of these variables added to the correlation of these two variables multiplied with the product of the square root of the variances of these two variables (which equals $\rho^3 = 0.6^3 = `r 0.6^3`$ in the current simulation). Since the residuals of both models are uncorrelated with each other, but also with the values of the other variable, these terms drop of. 
 
 
 An alternative generation scheme can be considered as below, which is, I think, closer to what should happen. 
