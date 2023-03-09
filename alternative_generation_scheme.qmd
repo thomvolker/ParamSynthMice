@@ -7,15 +7,26 @@ More or less the current approach in mice. I simplified somewhat, by not taking 
 
 
 ```{r}
+#| label: set-parameters
 #| message: false
 library(purrr)
 library(dplyr)
 library(tidyr)
+library(magrittr)
+library(mice)
 
 set.seed(123)
 
 N <- 1000000
 rho <- 0.6
+```
+
+## Approximating the `mice` data generation approach
+
+```{r}
+#| label: mice-generation-scheme
+#| cache: true
+#| cache-lazy: false
 
 syn_cors <- map_dbl(1:100, function(x) {
   X1 <- rnorm(N)
@@ -46,12 +57,17 @@ $$
 = & \rho^3,
 \end{align}
 $$
-where we make use of the fact that the expectation of the product of two normally distributed random variables equals the product of the expectations of these variables added to the correlation of these two variables multiplied with the product of the square root of the variances of these two variables (which equals $\rho^3 = 0.6^3 = `r 0.6^3`$ in the current simulation). Since the residuals of both models are uncorrelated with each other, but also with the values of the other variable, these terms drop of. 
+where we make use of the fact that the expectation of the product of two normally distributed random variables equals the product of the expectations of these variables added to correlation of these two variables multiplied with the product of the square root of the variances of these two variables (which equals $\rho^3 = 0.6^3 = `r 0.6^3`$ in the current simulation). Since the residuals of both models are uncorrelated with each other, but also with the values of the other variable, these terms drop of. 
+
+## Alternative iteration scheme for missing data
 
 
 An alternative generation scheme can be considered as below, which is, I think, closer to what should happen. 
 
 ```{r}
+#| label: alternative-generation-scheme
+#| cache: true
+
 N <- 10000
 P <- 3
 S <- matrix(rho, P, P)
@@ -90,3 +106,148 @@ syns |>
   {\(x) reduce(x, `+`) / 100}()
 
 ```
+
+### Iterating with the new imputation scheme
+
+Now, let's test whether the new iteration scheme doesn't converge to outer space, when we use more than a single iteration. This would give some confidence that we can use a similar procedure to solve for missing data and generate synthetic data simultaneously.
+
+```{r}
+#| label: test-iter
+#| cache: true
+
+syns_iter <- map(1:100, function(x) {
+
+  X <- rnorm(N*P) |> matrix(N, P) %*% chol(S)
+  syn <- X
+  
+  for (t in 1:100) {
+    for (i in 1:ncol(X)) {
+      fit <- lm(X[,i] ~ X[,-i])
+      b <- fit$coefficients
+      nb <- length(b)
+      b_se <- vcov(fit)
+      pred <- cbind(1, syn[,-i]) %*% (b + c(rnorm(nb) |> matrix(1, nb) %*% chol(b_se)))
+      syn[,i] <- pred + rnorm(N, 0, sd(fit$residuals))
+    }
+  }
+  syn
+})
+
+syns_iter |>
+  map_dfr(~data.frame(.x) |>
+            summarize(across(.fns = list(mean = mean, var = var))) |>
+            pivot_longer(cols = everything(),
+                         names_sep = "_",
+                         names_to = c("var", "stat"))) |>
+  group_by(var, stat) |>
+  summarize(value = mean(value) |> round(4))
+
+S
+
+syns_iter |>
+  map(var) |>
+  {\(x) reduce(x, `+`) / 100}()
+
+```
+
+### Coverages with this new iteration scheme
+
+Let's additionally test whether we can get nominal coverage rate with the current approach (which is a minimum for being applicable in practice).
+
+```{r}
+#| label: test-coverages-new-approach
+#| cache: true
+
+beta <- c(0, solve(t(S[2:3,2:3]) %*% S[2:3,2:3]) %*% S[2:3,2:3] %*% S[1,2:3])
+
+coverage <- function(est, true) {
+  est |>
+    mutate(True_Est = rep(true, nrow(est)/length(true))) |>
+    group_by(Var) |>
+    summarize(True_Est = mean(True_Est),
+              Imp_Est = mean(Est),
+              SE = mean(SE),
+              Cov = mean(Low < True_Est & True_Est < Upp))
+}
+
+inferences <- function(fitlist, rule) {
+  fit <- pool(fitlist, rule = rule) %$% pooled
+  data.frame(Var = fit[,1],
+             Est = fit[,3],
+             SE  = sqrt(fit[,6]),
+             Low = fit[,3] - qt(0.975, fit[,8]) * sqrt(fit[,6]),
+             Upp = fit[,3] + qt(0.975, fit[,8]) * sqrt(fit[,6]))
+}
+
+future::plan(future::multisession())
+
+syns_cov <- furrr::future_map(1:500, function(x) {
+
+  X <- rnorm(N*P) |> matrix(N, P) %*% chol(S)
+  syn <- rep(list(X), 5)
+  
+  map(syn, function(s) {
+    for (i in 1:ncol(X)) {
+      fit <- lm(X[,i] ~ X[,-i])
+      b <- fit$coefficients
+      nb <- length(b)
+      b_se <- vcov(fit)
+      pred <- cbind(1, s[,-i]) %*% (b + c(rnorm(nb) |> matrix(1, nb) %*% chol(b_se)))
+      s[,i] <- pred + rnorm(N, 0, sd(fit$residuals))
+    }
+    s |> data.frame()
+  })
+}, .options = furrr::furrr_options(seed = TRUE))
+
+syns_cov |>
+  map_dfr(~ map(.x, function(x) lm(X1 ~ X2 + X3, x)) |>
+            inferences(rule = "reiter2003")) |>
+  coverage(beta)
+```
+
+## Combine imputation with synthetic data generation
+
+Test variance estimator without adjusted degrees of freedom.
+
+```{r}
+#| label: test-imp-synthetic
+#| cache: true
+syns_miss <- furrr::future_map(1:500, function(x) {
+
+  X <- rnorm(N*P) |> matrix(N, P) %*% chol(S) |> data.frame()
+  amp <- ampute(X, mech = "MCAR")$amp
+  imp <- mice(amp, method = "norm", printFlag = F) |> complete("all")
+  
+  map(imp, function(i) {
+    s <- X <- as.matrix(i)
+    
+    for (i in 1:ncol(X)) {
+      fit <- lm(X[,i] ~ X[,-i])
+      b <- fit$coefficients
+      nb <- length(b)
+      b_se <- vcov(fit)
+      pred <- cbind(1, s[,-i]) %*% (b + c(rnorm(nb) |> matrix(1, nb) %*% chol(b_se)))
+      s[,i] <- pred + rnorm(N, 0, sd(fit$residuals))
+    }
+    s |> data.frame()
+  })
+}, .options = furrr::furrr_options(seed = TRUE))
+
+syns_cov |>
+  map_dfr(function(s) {
+    fits <- map(s, function(x) lm(X1 ~ X2 + X3, x))
+    pool(fits) %$% pooled
+  }) |> 
+  mutate(SE = sqrt(b + b/m),
+         df = dfcom,
+         Low = estimate - qt(0.975, df) * SE,
+         Upp = estimate + qt(0.975, df) * SE) |>
+  select(Var = term,
+         Est = estimate,
+         SE = SE, 
+         Low = Low,
+         Upp = Upp) |>
+  coverage(beta)
+```
+
+Unfortunately doesn't work.

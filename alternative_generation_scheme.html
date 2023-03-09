@@ -129,26 +129,31 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(purrr)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyr)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(magrittr)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mice)</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="dv">1000000</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>rho <span class="ot">&lt;-</span> <span class="fl">0.6</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>syn_cors <span class="ot">&lt;-</span> <span class="fu">map_dbl</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, <span class="cf">function</span>(x) {</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  X1 <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N)</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  X2 <span class="ot">&lt;-</span> rho <span class="sc">*</span> X1 <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sqrt</span>(<span class="dv">1</span><span class="sc">-</span>rho<span class="sc">^</span><span class="dv">2</span>))</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  fit1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(X1 <span class="sc">~</span> X2)</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  fit2 <span class="ot">&lt;-</span> <span class="fu">lm</span>(X2 <span class="sc">~</span> X1)</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  X1syn <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit1) <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sd</span>(fit1<span class="sc">$</span>residuals))</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  X2syn <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit2) <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sd</span>(fit2<span class="sc">$</span>residuals))</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cor</span>(X1syn, X2syn)</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(syn_cors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="dv">1000000</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>rho <span class="ot">&lt;-</span> <span class="fl">0.6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="approximating-the-mice-data-generation-approach" class="level2">
+<h2 class="anchored" data-anchor-id="approximating-the-mice-data-generation-approach">Approximating the <code>mice</code> data generation approach</h2>
+<div class="cell" data-hash="alternative_generation_scheme_cache/html/mice-generation-scheme_f20f44fd7a6fe095f5c07cb73ef04551">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>syn_cors <span class="ot">&lt;-</span> <span class="fu">map_dbl</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, <span class="cf">function</span>(x) {</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  X1 <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  X2 <span class="ot">&lt;-</span> rho <span class="sc">*</span> X1 <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sqrt</span>(<span class="dv">1</span><span class="sc">-</span>rho<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  fit1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(X1 <span class="sc">~</span> X2)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  fit2 <span class="ot">&lt;-</span> <span class="fu">lm</span>(X2 <span class="sc">~</span> X1)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  X1syn <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit1) <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sd</span>(fit1<span class="sc">$</span>residuals))</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  X2syn <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit2) <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sd</span>(fit2<span class="sc">$</span>residuals))</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cor</span>(X1syn, X2syn)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(syn_cors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0.2159024</code></pre>
 </div>
@@ -164,39 +169,42 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 = &amp; \rho^2 (\mathbb{E}[X_1] \mathbb{E}[X_2] + \rho \sigma_{X_1}\sigma_{X_2}) \\
 = &amp; \rho^3,
 \end{align}
-\]</span> where we make use of the fact that the expectation of the product of two normally distributed random variables equals the product of the expectations of these variables added to the correlation of these two variables multiplied with the product of the square root of the variances of these two variables (which equals <span class="math inline">\(\rho^3 = 0.6^3 = 0.216\)</span> in the current simulation). Since the residuals of both models are uncorrelated with each other, but also with the values of the other variable, these terms drop of.</p>
+\]</span> where we make use of the fact that the expectation of the product of two normally distributed random variables equals the product of the expectations of these variables added to correlation of these two variables multiplied with the product of the square root of the variances of these two variables (which equals <span class="math inline">\(\rho^3 = 0.6^3 = 0.216\)</span> in the current simulation). Since the residuals of both models are uncorrelated with each other, but also with the values of the other variable, these terms drop of.</p>
+</section>
+<section id="alternative-iteration-scheme-for-missing-data" class="level2">
+<h2 class="anchored" data-anchor-id="alternative-iteration-scheme-for-missing-data">Alternative iteration scheme for missing data</h2>
 <p>An alternative generation scheme can be considered as below, which is, I think, closer to what should happen.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="dv">10000</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>P <span class="ot">&lt;-</span> <span class="dv">3</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>S <span class="ot">&lt;-</span> <span class="fu">matrix</span>(rho, P, P)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">diag</span>(S) <span class="ot">&lt;-</span> <span class="dv">1</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>syns <span class="ot">&lt;-</span> <span class="fu">map</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, <span class="cf">function</span>(x) {</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  X <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N<span class="sc">*</span>P) <span class="sc">|&gt;</span> <span class="fu">matrix</span>(N, P) <span class="sc">%*%</span> <span class="fu">chol</span>(S)</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  syn <span class="ot">&lt;-</span> X</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(X)) {</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(X[,i] <span class="sc">~</span> X[,<span class="sc">-</span>i])</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    b <span class="ot">&lt;-</span> fit<span class="sc">$</span>coefficients</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    nb <span class="ot">&lt;-</span> <span class="fu">length</span>(b)</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    b_se <span class="ot">&lt;-</span> <span class="fu">vcov</span>(fit)</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    pred <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, syn[,<span class="sc">-</span>i]) <span class="sc">%*%</span> (b <span class="sc">+</span> <span class="fu">c</span>(<span class="fu">rnorm</span>(b) <span class="sc">|&gt;</span> <span class="fu">matrix</span>(<span class="dv">1</span>, nb) <span class="sc">%*%</span> <span class="fu">chol</span>(b_se)))</span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    syn[,i] <span class="ot">&lt;-</span> pred <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sd</span>(fit<span class="sc">$</span>residuals))</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  syn</span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>syns <span class="sc">|&gt;</span></span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_dfr</span>(<span class="sc">~</span><span class="fu">data.frame</span>(.x) <span class="sc">|&gt;</span></span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>            <span class="fu">summarize</span>(<span class="fu">across</span>(<span class="at">.fns =</span> <span class="fu">list</span>(<span class="at">mean =</span> mean, <span class="at">var =</span> var))) <span class="sc">|&gt;</span></span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>            <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(),</span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>                         <span class="at">names_sep =</span> <span class="st">"_"</span>,</span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>                         <span class="at">names_to =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"stat"</span>))) <span class="sc">|&gt;</span></span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var, stat) <span class="sc">|&gt;</span></span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">value =</span> <span class="fu">mean</span>(value))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-hash="alternative_generation_scheme_cache/html/alternative-generation-scheme_0750573301c4531cdf31a4bb77bb519a">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="dv">10000</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>P <span class="ot">&lt;-</span> <span class="dv">3</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>S <span class="ot">&lt;-</span> <span class="fu">matrix</span>(rho, P, P)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">diag</span>(S) <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>syns <span class="ot">&lt;-</span> <span class="fu">map</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, <span class="cf">function</span>(x) {</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  X <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N<span class="sc">*</span>P) <span class="sc">|&gt;</span> <span class="fu">matrix</span>(N, P) <span class="sc">%*%</span> <span class="fu">chol</span>(S)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  syn <span class="ot">&lt;-</span> X</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(X)) {</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(X[,i] <span class="sc">~</span> X[,<span class="sc">-</span>i])</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    b <span class="ot">&lt;-</span> fit<span class="sc">$</span>coefficients</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    nb <span class="ot">&lt;-</span> <span class="fu">length</span>(b)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    b_se <span class="ot">&lt;-</span> <span class="fu">vcov</span>(fit)</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    pred <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, syn[,<span class="sc">-</span>i]) <span class="sc">%*%</span> (b <span class="sc">+</span> <span class="fu">c</span>(<span class="fu">rnorm</span>(b) <span class="sc">|&gt;</span> <span class="fu">matrix</span>(<span class="dv">1</span>, nb) <span class="sc">%*%</span> <span class="fu">chol</span>(b_se)))</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    syn[,i] <span class="ot">&lt;-</span> pred <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sd</span>(fit<span class="sc">$</span>residuals))</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  syn</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>syns <span class="sc">|&gt;</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_dfr</span>(<span class="sc">~</span><span class="fu">data.frame</span>(.x) <span class="sc">|&gt;</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>            <span class="fu">summarize</span>(<span class="fu">across</span>(<span class="at">.fns =</span> <span class="fu">list</span>(<span class="at">mean =</span> mean, <span class="at">var =</span> var))) <span class="sc">|&gt;</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>            <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(),</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>                         <span class="at">names_sep =</span> <span class="st">"_"</span>,</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>                         <span class="at">names_to =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"stat"</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var, stat) <span class="sc">|&gt;</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">value =</span> <span class="fu">mean</span>(value))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`summarise()` has grouped output by 'var'. You can override using the `.groups`
 argument.</code></pre>
@@ -213,16 +221,16 @@ argument.</code></pre>
 5 X3    mean  -0.000871
 6 X3    var    1.00    </code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>S</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>S</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>     [,1] [,2] [,3]
 [1,]  1.0  0.6  0.6
 [2,]  0.6  1.0  0.6
 [3,]  0.6  0.6  1.0</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>syns <span class="sc">|&gt;</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(var) <span class="sc">|&gt;</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  {\(x) <span class="fu">reduce</span>(x, <span class="st">`</span><span class="at">+</span><span class="st">`</span>) <span class="sc">/</span> <span class="dv">100</span>}()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>syns <span class="sc">|&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  {\(x) <span class="fu">reduce</span>(x, <span class="st">`</span><span class="at">+</span><span class="st">`</span>) <span class="sc">/</span> <span class="dv">100</span>}()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          [,1]      [,2]      [,3]
 [1,] 1.0012083 0.6025638 0.6007404
@@ -230,6 +238,181 @@ argument.</code></pre>
 [3,] 0.6007404 0.6013972 1.0009222</code></pre>
 </div>
 </div>
+<section id="iterating-with-the-new-imputation-scheme" class="level3">
+<h3 class="anchored" data-anchor-id="iterating-with-the-new-imputation-scheme">Iterating with the new imputation scheme</h3>
+<p>Now, let’s test whether the new iteration scheme doesn’t converge to outer space, when we use more than a single iteration. This would give some confidence that we can use a similar procedure to solve for missing data and generate synthetic data simultaneously.</p>
+<div class="cell" data-hash="alternative_generation_scheme_cache/html/test-iter_3aef0c1bfd8ef4bd0e38292242f91939">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>syns_iter <span class="ot">&lt;-</span> <span class="fu">map</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, <span class="cf">function</span>(x) {</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  X <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N<span class="sc">*</span>P) <span class="sc">|&gt;</span> <span class="fu">matrix</span>(N, P) <span class="sc">%*%</span> <span class="fu">chol</span>(S)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  syn <span class="ot">&lt;-</span> X</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (t <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>) {</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(X)) {</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>      fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(X[,i] <span class="sc">~</span> X[,<span class="sc">-</span>i])</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>      b <span class="ot">&lt;-</span> fit<span class="sc">$</span>coefficients</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>      nb <span class="ot">&lt;-</span> <span class="fu">length</span>(b)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>      b_se <span class="ot">&lt;-</span> <span class="fu">vcov</span>(fit)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>      pred <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, syn[,<span class="sc">-</span>i]) <span class="sc">%*%</span> (b <span class="sc">+</span> <span class="fu">c</span>(<span class="fu">rnorm</span>(nb) <span class="sc">|&gt;</span> <span class="fu">matrix</span>(<span class="dv">1</span>, nb) <span class="sc">%*%</span> <span class="fu">chol</span>(b_se)))</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>      syn[,i] <span class="ot">&lt;-</span> pred <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sd</span>(fit<span class="sc">$</span>residuals))</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  syn</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>syns_iter <span class="sc">|&gt;</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_dfr</span>(<span class="sc">~</span><span class="fu">data.frame</span>(.x) <span class="sc">|&gt;</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>            <span class="fu">summarize</span>(<span class="fu">across</span>(<span class="at">.fns =</span> <span class="fu">list</span>(<span class="at">mean =</span> mean, <span class="at">var =</span> var))) <span class="sc">|&gt;</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>            <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(),</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>                         <span class="at">names_sep =</span> <span class="st">"_"</span>,</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>                         <span class="at">names_to =</span> <span class="fu">c</span>(<span class="st">"var"</span>, <span class="st">"stat"</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(var, stat) <span class="sc">|&gt;</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">value =</span> <span class="fu">mean</span>(value) <span class="sc">|&gt;</span> <span class="fu">round</span>(<span class="dv">4</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'var'. You can override using the `.groups`
+argument.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 3
+# Groups:   var [3]
+  var   stat    value
+  &lt;chr&gt; &lt;chr&gt;   &lt;dbl&gt;
+1 X1    mean  -0.0004
+2 X1    var    0.996 
+3 X2    mean  -0.0018
+4 X2    var    0.999 
+5 X3    mean  -0.0009
+6 X3    var    0.998 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>S</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     [,1] [,2] [,3]
+[1,]  1.0  0.6  0.6
+[2,]  0.6  1.0  0.6
+[3,]  0.6  0.6  1.0</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>syns_iter <span class="sc">|&gt;</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(var) <span class="sc">|&gt;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  {\(x) <span class="fu">reduce</span>(x, <span class="st">`</span><span class="at">+</span><span class="st">`</span>) <span class="sc">/</span> <span class="dv">100</span>}()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          [,1]      [,2]      [,3]
+[1,] 0.9958483 0.5982655 0.5980042
+[2,] 0.5982655 0.9989576 0.5993721
+[3,] 0.5980042 0.5993721 0.9976468</code></pre>
+</div>
+</div>
+</section>
+<section id="coverages-with-this-new-iteration-scheme" class="level3">
+<h3 class="anchored" data-anchor-id="coverages-with-this-new-iteration-scheme">Coverages with this new iteration scheme</h3>
+<p>Let’s additionally test whether we can get nominal coverage rate with the current approach (which is a minimum for being applicable in practice).</p>
+<div class="cell" data-hash="alternative_generation_scheme_cache/html/test-coverages-new-approach_ade8528cdd5118cc2412ab92c87d751b">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>beta <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fu">solve</span>(<span class="fu">t</span>(S[<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>,<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>]) <span class="sc">%*%</span> S[<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>,<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>]) <span class="sc">%*%</span> S[<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>,<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>] <span class="sc">%*%</span> S[<span class="dv">1</span>,<span class="dv">2</span><span class="sc">:</span><span class="dv">3</span>])</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>coverage <span class="ot">&lt;-</span> <span class="cf">function</span>(est, true) {</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  est <span class="sc">|&gt;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">True_Est =</span> <span class="fu">rep</span>(true, <span class="fu">nrow</span>(est)<span class="sc">/</span><span class="fu">length</span>(true))) <span class="sc">|&gt;</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(Var) <span class="sc">|&gt;</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarize</span>(<span class="at">True_Est =</span> <span class="fu">mean</span>(True_Est),</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>              <span class="at">Imp_Est =</span> <span class="fu">mean</span>(Est),</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>              <span class="at">SE =</span> <span class="fu">mean</span>(SE),</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>              <span class="at">Cov =</span> <span class="fu">mean</span>(Low <span class="sc">&lt;</span> True_Est <span class="sc">&amp;</span> True_Est <span class="sc">&lt;</span> Upp))</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>inferences <span class="ot">&lt;-</span> <span class="cf">function</span>(fitlist, rule) {</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">pool</span>(fitlist, <span class="at">rule =</span> rule) <span class="sc">%$%</span> pooled</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">Var =</span> fit[,<span class="dv">1</span>],</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>             <span class="at">Est =</span> fit[,<span class="dv">3</span>],</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>             <span class="at">SE  =</span> <span class="fu">sqrt</span>(fit[,<span class="dv">6</span>]),</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>             <span class="at">Low =</span> fit[,<span class="dv">3</span>] <span class="sc">-</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, fit[,<span class="dv">8</span>]) <span class="sc">*</span> <span class="fu">sqrt</span>(fit[,<span class="dv">6</span>]),</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>             <span class="at">Upp =</span> fit[,<span class="dv">3</span>] <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, fit[,<span class="dv">8</span>]) <span class="sc">*</span> <span class="fu">sqrt</span>(fit[,<span class="dv">6</span>]))</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>future<span class="sc">::</span><span class="fu">plan</span>(future<span class="sc">::</span><span class="fu">multisession</span>())</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>syns_cov <span class="ot">&lt;-</span> furrr<span class="sc">::</span><span class="fu">future_map</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">500</span>, <span class="cf">function</span>(x) {</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>  X <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N<span class="sc">*</span>P) <span class="sc">|&gt;</span> <span class="fu">matrix</span>(N, P) <span class="sc">%*%</span> <span class="fu">chol</span>(S)</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>  syn <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">list</span>(X), <span class="dv">5</span>)</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(syn, <span class="cf">function</span>(s) {</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(X)) {</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>      fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(X[,i] <span class="sc">~</span> X[,<span class="sc">-</span>i])</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>      b <span class="ot">&lt;-</span> fit<span class="sc">$</span>coefficients</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>      nb <span class="ot">&lt;-</span> <span class="fu">length</span>(b)</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>      b_se <span class="ot">&lt;-</span> <span class="fu">vcov</span>(fit)</span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>      pred <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, s[,<span class="sc">-</span>i]) <span class="sc">%*%</span> (b <span class="sc">+</span> <span class="fu">c</span>(<span class="fu">rnorm</span>(nb) <span class="sc">|&gt;</span> <span class="fu">matrix</span>(<span class="dv">1</span>, nb) <span class="sc">%*%</span> <span class="fu">chol</span>(b_se)))</span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>      s[,i] <span class="ot">&lt;-</span> pred <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sd</span>(fit<span class="sc">$</span>residuals))</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>    s <span class="sc">|&gt;</span> <span class="fu">data.frame</span>()</span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>}, <span class="at">.options =</span> furrr<span class="sc">::</span><span class="fu">furrr_options</span>(<span class="at">seed =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>syns_cov <span class="sc">|&gt;</span></span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_dfr</span>(<span class="sc">~</span> <span class="fu">map</span>(.x, <span class="cf">function</span>(x) <span class="fu">lm</span>(X1 <span class="sc">~</span> X2 <span class="sc">+</span> X3, x)) <span class="sc">|&gt;</span></span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>            <span class="fu">inferences</span>(<span class="at">rule =</span> <span class="st">"reiter2003"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coverage</span>(beta)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Var         True_Est    Imp_Est      SE   Cov
+  &lt;fct&gt;          &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;
+1 (Intercept)    0     -0.0000630 0.00856 0.952
+2 X2             0.375  0.375     0.0106  0.952
+3 X3             0.375  0.375     0.0106  0.954</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="combine-imputation-with-synthetic-data-generation" class="level2">
+<h2 class="anchored" data-anchor-id="combine-imputation-with-synthetic-data-generation">Combine imputation with synthetic data generation</h2>
+<p>Test variance estimator without adjusted degrees of freedom.</p>
+<div class="cell" data-hash="alternative_generation_scheme_cache/html/test-imp-synthetic_f441b830a2d77d886a41bea22a94c29c">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>syns_miss <span class="ot">&lt;-</span> furrr<span class="sc">::</span><span class="fu">future_map</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">500</span>, <span class="cf">function</span>(x) {</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  X <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N<span class="sc">*</span>P) <span class="sc">|&gt;</span> <span class="fu">matrix</span>(N, P) <span class="sc">%*%</span> <span class="fu">chol</span>(S) <span class="sc">|&gt;</span> <span class="fu">data.frame</span>()</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  amp <span class="ot">&lt;-</span> <span class="fu">ampute</span>(X, <span class="at">mech =</span> <span class="st">"MCAR"</span>)<span class="sc">$</span>amp</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  imp <span class="ot">&lt;-</span> <span class="fu">mice</span>(amp, <span class="at">method =</span> <span class="st">"norm"</span>, <span class="at">printFlag =</span> F) <span class="sc">|&gt;</span> <span class="fu">complete</span>(<span class="st">"all"</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(imp, <span class="cf">function</span>(i) {</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    s <span class="ot">&lt;-</span> X <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(i)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(X)) {</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>      fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(X[,i] <span class="sc">~</span> X[,<span class="sc">-</span>i])</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>      b <span class="ot">&lt;-</span> fit<span class="sc">$</span>coefficients</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>      nb <span class="ot">&lt;-</span> <span class="fu">length</span>(b)</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>      b_se <span class="ot">&lt;-</span> <span class="fu">vcov</span>(fit)</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>      pred <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">1</span>, s[,<span class="sc">-</span>i]) <span class="sc">%*%</span> (b <span class="sc">+</span> <span class="fu">c</span>(<span class="fu">rnorm</span>(nb) <span class="sc">|&gt;</span> <span class="fu">matrix</span>(<span class="dv">1</span>, nb) <span class="sc">%*%</span> <span class="fu">chol</span>(b_se)))</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>      s[,i] <span class="ot">&lt;-</span> pred <span class="sc">+</span> <span class="fu">rnorm</span>(N, <span class="dv">0</span>, <span class="fu">sd</span>(fit<span class="sc">$</span>residuals))</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    s <span class="sc">|&gt;</span> <span class="fu">data.frame</span>()</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>}, <span class="at">.options =</span> furrr<span class="sc">::</span><span class="fu">furrr_options</span>(<span class="at">seed =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>syns_cov <span class="sc">|&gt;</span></span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_dfr</span>(<span class="cf">function</span>(s) {</span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    fits <span class="ot">&lt;-</span> <span class="fu">map</span>(s, <span class="cf">function</span>(x) <span class="fu">lm</span>(X1 <span class="sc">~</span> X2 <span class="sc">+</span> X3, x))</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pool</span>(fits) <span class="sc">%$%</span> pooled</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>  }) <span class="sc">|&gt;</span> </span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">SE =</span> <span class="fu">sqrt</span>(b <span class="sc">+</span> b<span class="sc">/</span>m),</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>         <span class="at">df =</span> dfcom,</span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>         <span class="at">Low =</span> estimate <span class="sc">-</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, df) <span class="sc">*</span> SE,</span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>         <span class="at">Upp =</span> estimate <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, df) <span class="sc">*</span> SE) <span class="sc">|&gt;</span></span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">Var =</span> term,</span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>         <span class="at">Est =</span> estimate,</span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>         <span class="at">SE =</span> SE, </span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>         <span class="at">Low =</span> Low,</span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>         <span class="at">Upp =</span> Upp) <span class="sc">|&gt;</span></span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coverage</span>(beta)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 5
+  Var         True_Est    Imp_Est      SE   Cov
+  &lt;fct&gt;          &lt;dbl&gt;      &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;
+1 (Intercept)    0     -0.0000630 0.00998 0.93 
+2 X2             0.375  0.375     0.0122  0.926
+3 X3             0.375  0.375     0.0119  0.928</code></pre>
+</div>
+</div>
+<p>Unfortunately doesn’t work.</p>
+</section>
 
 </main>
 <!-- /main column -->
